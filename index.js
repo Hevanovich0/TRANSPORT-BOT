@@ -108,8 +108,7 @@ async function updateBusMessage() {
         `**Ligne C3 :**\n${enServiceBusC3.length ? enServiceBusC3.map(name => `- ${name}`).join("\n") : "Aucun en service"}`
       )
       .setThumbnail(botAvatar)
-      .setFooter({ text: `Mise à jour à ${new Date().toLocaleTimeString('fr-FR')}` });
-
+    
     await sendOrUpdateLastEmbed(salon, embed);
   } catch (error) {
     console.error('❌ Erreur updateBusMessage:', error);
