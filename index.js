@@ -2,19 +2,19 @@ const { Client, GatewayIntentBits, REST, Routes, EmbedBuilder } = require('disco
 const express = require('express');
 require('dotenv').config();
 
-// Initialisation du client Discord avec les intents nécessaires
+// Initialisation du client
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent, // Nécessite d’être activé dans le portail Discord
+    GatewayIntentBits.MessageContent, // Nécessite d'être activé dans le portail Discord
   ],
 });
 
-// Initialisation du REST pour les commandes slash
+// REST pour enregistrer les commandes
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
-// Variables de services
+// Services en cours
 const enServiceTaxi = [];
 const enServiceBusC1 = [];
 const enServiceBusC2 = [];
@@ -37,7 +37,7 @@ app.listen(PORT, () => {
   console.log(`🚀 Serveur de statut lancé sur le port ${PORT}`);
 });
 
-// Fonction pour enregistrer les commandes slash
+// Commandes slash à enregistrer
 async function registerCommands() {
   const commands = [
     { name: 'debut-taxi', description: 'Commence le service de taxi' },
@@ -58,7 +58,7 @@ async function registerCommands() {
   }
 }
 
-// Fonction utilitaire pour envoyer ou éditer le dernier embed
+// Envoie ou met à jour un embed
 async function sendOrUpdateLastEmbed(channel, embed) {
   const messages = await channel.messages.fetch({ limit: 1 });
   const lastMessage = messages.first();
@@ -70,7 +70,7 @@ async function sendOrUpdateLastEmbed(channel, embed) {
   }
 }
 
-// Mise à jour du message pour les taxis
+// Mise à jour des taxis
 async function updateTaxiMessage() {
   try {
     const salon = await client.channels.fetch(salonTaxiId);
@@ -89,11 +89,11 @@ async function updateTaxiMessage() {
 
     await sendOrUpdateLastEmbed(salon, embed);
   } catch (error) {
-    console.error('❌ Erreur dans updateTaxiMessage:', error);
+    console.error('❌ Erreur updateTaxiMessage:', error);
   }
 }
 
-// Mise à jour du message pour les bus
+// Mise à jour des bus
 async function updateBusMessage() {
   try {
     const salon = await client.channels.fetch(salonBusId);
@@ -112,24 +112,94 @@ async function updateBusMessage() {
 
     await sendOrUpdateLastEmbed(salon, embed);
   } catch (error) {
-    console.error('❌ Erreur dans updateBusMessage:', error);
+    console.error('❌ Erreur updateBusMessage:', error);
   }
 }
 
-// Événement "ready" du bot
+// Répond aux interactions
+client.on('interactionCreate', async interaction => {
+  if (!interaction.isCommand()) return;
+
+  const { commandName, user } = interaction;
+
+  try {
+    let message = '';
+    switch (commandName) {
+      case 'debut-taxi':
+        if (!enServiceTaxi.includes(user.username)) enServiceTaxi.push(user.username);
+        message = `🚕 ${user.username} a commencé son service de taxi.`;
+        await updateTaxiMessage();
+        break;
+
+      case 'fin-taxi':
+        enServiceTaxi.splice(enServiceTaxi.indexOf(user.username), 1);
+        message = `🛑 ${user.username} a terminé son service de taxi.`;
+        await updateTaxiMessage();
+        break;
+
+      case 'debut-c1':
+        if (!enServiceBusC1.includes(user.username)) enServiceBusC1.push(user.username);
+        message = `🚌 ${user.username} a commencé son service sur la ligne C1.`;
+        await updateBusMessage();
+        break;
+
+      case 'fin-c1':
+        enServiceBusC1.splice(enServiceBusC1.indexOf(user.username), 1);
+        message = `🛑 ${user.username} a terminé son service sur la ligne C1.`;
+        await updateBusMessage();
+        break;
+
+      case 'debut-c2':
+        if (!enServiceBusC2.includes(user.username)) enServiceBusC2.push(user.username);
+        message = `🚌 ${user.username} a commencé son service sur la ligne C2.`;
+        await updateBusMessage();
+        break;
+
+      case 'fin-c2':
+        enServiceBusC2.splice(enServiceBusC2.indexOf(user.username), 1);
+        message = `🛑 ${user.username} a terminé son service sur la ligne C2.`;
+        await updateBusMessage();
+        break;
+
+      case 'debut-c3':
+        if (!enServiceBusC3.includes(user.username)) enServiceBusC3.push(user.username);
+        message = `🚌 ${user.username} a commencé son service sur la ligne C3.`;
+        await updateBusMessage();
+        break;
+
+      case 'fin-c3':
+        enServiceBusC3.splice(enServiceBusC3.indexOf(user.username), 1);
+        message = `🛑 ${user.username} a terminé son service sur la ligne C3.`;
+        await updateBusMessage();
+        break;
+
+      default:
+        message = '❓ Commande inconnue.';
+    }
+
+    const reply = await interaction.reply({ content: message, ephemeral: true, fetchReply: true });
+
+    setTimeout(() => {
+      interaction.deleteReply().catch(console.error);
+    }, 3000);
+  } catch (error) {
+    console.error('❌ Erreur interactionCreate:', error);
+    if (!interaction.replied) {
+      await interaction.reply({ content: '❌ Une erreur est survenue.', ephemeral: true });
+    }
+  }
+});
+
+// Quand le bot est prêt
 client.once('ready', async () => {
   console.log(`✅ Bot connecté en tant que ${client.user.tag}`);
   botAvatar = client.user.displayAvatarURL();
-
-  // S'assurer que client.application est bien chargé
   await client.application.fetch();
-
   await registerCommands();
   await updateTaxiMessage();
   await updateBusMessage();
-
   botReady = true;
 });
 
-// Connexion du bot à Discord
+// Connexion
 client.login(process.env.TOKEN);
