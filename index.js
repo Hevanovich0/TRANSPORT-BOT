@@ -85,7 +85,6 @@ async function updateTaxiMessage() {
           : "Aucun taxi en service actuellement."
       )
       .setThumbnail(botAvatar)
-      .setFooter({ text: `Mise à jour à ${new Date().toLocaleTimeString('fr-FR')}` });
 
     await sendOrUpdateLastEmbed(salon, embed);
   } catch (error) {
