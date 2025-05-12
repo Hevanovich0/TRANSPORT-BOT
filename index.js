@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 3000;
 const salonTaxiId = '1341802481960882276';
 const salonBusId = '1349639922574688266';
 const roleAutoriseId = '1336435782302433432';
-const GUILD_ID = 'TON_ID_SERVEUR_ICI'; // Remplace avec ton ID de serveur
+const GUILD_ID = '1336424856958271598'; // Remplace avec ton ID de serveur
 
 let botAvatar = '';
 let botReady = false;
