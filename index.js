@@ -7,7 +7,7 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent, // Nécessite d'être activé dans le portail Discord
+    GatewayIntentBits.MessageContent,
   ],
 });
 
@@ -22,6 +22,8 @@ const enServiceBusC3 = [];
 
 const salonTaxiId = '1341802481960882276';
 const salonBusId = '1349639922574688266';
+const roleAutoriseId = 'ROLE_ID_AUTORISE'; // ⬅️ ID du rôle autorisé à utiliser /enlever
+
 let botAvatar = '';
 let botReady = false;
 
@@ -48,6 +50,18 @@ async function registerCommands() {
     { name: 'fin-c2', description: 'Termine le service du bus C2' },
     { name: 'debut-c3', description: 'Commence le service du bus C3' },
     { name: 'fin-c3', description: 'Termine le service du bus C3' },
+    {
+      name: 'enlever',
+      description: 'Retire un utilisateur de toutes les listes de service',
+      options: [
+        {
+          name: 'utilisateur',
+          type: 6,
+          description: 'Utilisateur à retirer',
+          required: true,
+        },
+      ],
+    },
   ];
 
   try {
@@ -84,7 +98,7 @@ async function updateTaxiMessage() {
           ? enServiceTaxi.map(name => `- ${name}`).join('\n')
           : "Aucun taxi en service actuellement."
       )
-      .setThumbnail(botAvatar)
+      .setThumbnail(botAvatar);
 
     await sendOrUpdateLastEmbed(salon, embed);
   } catch (error) {
@@ -106,8 +120,8 @@ async function updateBusMessage() {
         `**Ligne C2 :**\n${enServiceBusC2.length ? enServiceBusC2.map(name => `- ${name}`).join("\n") : "Aucun en service"}\n\n` +
         `**Ligne C3 :**\n${enServiceBusC3.length ? enServiceBusC3.map(name => `- ${name}`).join("\n") : "Aucun en service"}`
       )
-      .setThumbnail(botAvatar)
-    
+      .setThumbnail(botAvatar);
+
     await sendOrUpdateLastEmbed(salon, embed);
   } catch (error) {
     console.error('❌ Erreur updateBusMessage:', error);
@@ -118,9 +132,8 @@ async function updateBusMessage() {
 client.on('interactionCreate', async interaction => {
   if (!interaction.isCommand()) return;
 
-  // Vérifie que la commande vient bien d'un serveur et d'un des salons autorisés
-  if (!interaction.inGuild() || 
-     (interaction.channelId !== salonTaxiId && interaction.channelId !== salonBusId)) {
+  if (!interaction.inGuild() ||
+    (interaction.channelId !== salonTaxiId && interaction.channelId !== salonBusId)) {
     await interaction.reply({ content: '❌ Cette commande ne peut être utilisée que dans les salons dédiés.', ephemeral: true });
     return;
   }
@@ -130,6 +143,7 @@ client.on('interactionCreate', async interaction => {
 
   try {
     let message = '';
+
     switch (commandName) {
       case 'debut-taxi':
         if (!enServiceTaxi.includes(displayName)) enServiceTaxi.push(displayName);
@@ -179,15 +193,57 @@ client.on('interactionCreate', async interaction => {
         await updateBusMessage();
         break;
 
+      case 'enlever':
+        if (!member.roles.cache.has(roleAutoriseId)) {
+          await interaction.reply({ content: '❌ Tu n’as pas la permission d’utiliser cette commande.', ephemeral: true });
+          return;
+        }
+
+        const userARetirer = interaction.options.getUser('utilisateur');
+        const memberARetirer = await interaction.guild.members.fetch(userARetirer.id);
+        const nomAffiche = memberARetirer.displayName;
+
+        let modif = false;
+
+        if (enServiceTaxi.includes(nomAffiche)) {
+          enServiceTaxi.splice(enServiceTaxi.indexOf(nomAffiche), 1);
+          await updateTaxiMessage();
+          modif = true;
+        }
+
+        if (enServiceBusC1.includes(nomAffiche)) {
+          enServiceBusC1.splice(enServiceBusC1.indexOf(nomAffiche), 1);
+          modif = true;
+        }
+
+        if (enServiceBusC2.includes(nomAffiche)) {
+          enServiceBusC2.splice(enServiceBusC2.indexOf(nomAffiche), 1);
+          modif = true;
+        }
+
+        if (enServiceBusC3.includes(nomAffiche)) {
+          enServiceBusC3.splice(enServiceBusC3.indexOf(nomAffiche), 1);
+          modif = true;
+        }
+
+        if (modif) {
+          await updateBusMessage();
+          await interaction.reply({ content: `✅ ${nomAffiche} a été retiré des services.`, ephemeral: true });
+        } else {
+          await interaction.reply({ content: `ℹ️ ${nomAffiche} n'était inscrit à aucun service.`, ephemeral: true });
+        }
+        break;
+
       default:
         message = '❓ Commande inconnue.';
     }
 
-    const reply = await interaction.reply({ content: message, ephemeral: true, fetchReply: true });
-
-    setTimeout(() => {
-      interaction.deleteReply().catch(console.error);
-    }, 3000);
+    if (commandName !== 'enlever') {
+      const reply = await interaction.reply({ content: message, ephemeral: true, fetchReply: true });
+      setTimeout(() => {
+        interaction.deleteReply().catch(console.error);
+      }, 3000);
+    }
   } catch (error) {
     console.error('❌ Erreur interactionCreate:', error);
     if (!interaction.replied) {
