@@ -118,6 +118,13 @@ async function updateBusMessage() {
 client.on('interactionCreate', async interaction => {
   if (!interaction.isCommand()) return;
 
+  // Vérifie que la commande vient bien d'un serveur et d'un des salons autorisés
+  if (!interaction.inGuild() || 
+     (interaction.channelId !== salonTaxiId && interaction.channelId !== salonBusId)) {
+    await interaction.reply({ content: '❌ Cette commande ne peut être utilisée que dans les salons dédiés.', ephemeral: true });
+    return;
+  }
+
   const { commandName, user, member } = interaction;
   const displayName = member.displayName;
 
@@ -126,49 +133,49 @@ client.on('interactionCreate', async interaction => {
     switch (commandName) {
       case 'debut-taxi':
         if (!enServiceTaxi.includes(displayName)) enServiceTaxi.push(displayName);
-        message = `🚕 ${displayName} a commencé son service de taxi.`;
+        message = `🚕 Tu as commencé ton service de taxi.`;
         await updateTaxiMessage();
         break;
 
       case 'fin-taxi':
         enServiceTaxi.splice(enServiceTaxi.indexOf(displayName), 1);
-        message = `🛑 ${displayName} a terminé son service de taxi.`;
+        message = `🛑 Tu as terminé ton service de taxi.`;
         await updateTaxiMessage();
         break;
 
       case 'debut-c1':
         if (!enServiceBusC1.includes(displayName)) enServiceBusC1.push(displayName);
-        message = `🚌 ${displayName} a commencé son service sur la ligne C1.`;
+        message = `🚌 Tu as commencé ton service sur la ligne C1.`;
         await updateBusMessage();
         break;
 
       case 'fin-c1':
         enServiceBusC1.splice(enServiceBusC1.indexOf(displayName), 1);
-        message = `🛑 ${displayName} a terminé son service sur la ligne C1.`;
+        message = `🛑 Tu as terminé ton service sur la ligne C1.`;
         await updateBusMessage();
         break;
 
       case 'debut-c2':
         if (!enServiceBusC2.includes(displayName)) enServiceBusC2.push(displayName);
-        message = `🚌 ${displayName} a commencé son service sur la ligne C2.`;
+        message = `🚌 Tu as commencé ton service sur la ligne C2.`;
         await updateBusMessage();
         break;
 
       case 'fin-c2':
         enServiceBusC2.splice(enServiceBusC2.indexOf(displayName), 1);
-        message = `🛑 ${displayName} a terminé son service sur la ligne C2.`;
+        message = `🛑 Tu as terminé ton service sur la ligne C2.`;
         await updateBusMessage();
         break;
 
       case 'debut-c3':
         if (!enServiceBusC3.includes(displayName)) enServiceBusC3.push(displayName);
-        message = `🚌 ${displayName} a commencé son service sur la ligne C3.`;
+        message = `🚌 Tu as commencé ton service sur la ligne C3.`;
         await updateBusMessage();
         break;
 
       case 'fin-c3':
         enServiceBusC3.splice(enServiceBusC3.indexOf(displayName), 1);
-        message = `🛑 ${displayName} a terminé son service sur la ligne C3.`;
+        message = `🛑 Tu as terminé ton service sur la ligne C3.`;
         await updateBusMessage();
         break;
 
