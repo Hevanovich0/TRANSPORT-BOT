@@ -17,8 +17,8 @@ const PORT = process.env.PORT || 3000;
 
 const salonTaxiId = '1341802481960882276';
 const salonBusId = '1349639922574688266';
-const roleAutoriseId = '1336435782302433432';
-const GUILD_ID = '1336424856958271598'; // Remplace avec ton ID de serveur
+const roleAutoriseId = '1336435782302433432'; // Remplacer par l'ID du rôle autorisé
+const GUILD_ID = '1336424856958271598'; // Remplacer par l'ID du serveur
 
 let botAvatar = '';
 let botReady = false;
@@ -180,6 +180,7 @@ client.on('interactionCreate', async interaction => {
         break;
 
       case 'enlever':
+        // Vérification du rôle spécifique pour utiliser cette commande
         if (!member.roles.cache.has(roleAutoriseId)) {
           await interaction.reply({ content: '❌ Tu n’as pas la permission d’utiliser cette commande.', ephemeral: true });
           return;
@@ -214,9 +215,19 @@ client.on('interactionCreate', async interaction => {
 
         if (modif) {
           await updateBusMessage();
-          await interaction.reply({ content: `✅ ${nomAffiche} a été retiré des services.`, ephemeral: true });
+          const reply = await interaction.reply({ content: `✅ ${nomAffiche} a été retiré des services.`, ephemeral: true });
+
+          // Faire disparaître le message après quelques secondes (3 secondes)
+          setTimeout(() => {
+            reply.delete().catch(console.error);
+          }, 3000);
         } else {
-          await interaction.reply({ content: `ℹ️ ${nomAffiche} n'était inscrit à aucun service.`, ephemeral: true });
+          const reply = await interaction.reply({ content: `ℹ️ ${nomAffiche} n'était inscrit à aucun service.`, ephemeral: true });
+
+          // Faire disparaître le message après quelques secondes (3 secondes)
+          setTimeout(() => {
+            reply.delete().catch(console.error);
+          }, 3000);
         }
         return;
 
