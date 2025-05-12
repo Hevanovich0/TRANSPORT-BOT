@@ -2,7 +2,7 @@ const { Client, GatewayIntentBits, REST, Routes, EmbedBuilder } = require('disco
 const express = require('express');
 require('dotenv').config();
 
-// Initialisation du client
+// Configuration
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -11,36 +11,34 @@ const client = new Client({
   ],
 });
 
-// REST pour enregistrer les commandes
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-// Services en cours
+const salonTaxiId = '1341802481960882276';
+const salonBusId = '1349639922574688266';
+const roleAutoriseId = '1336435782302433432';
+const GUILD_ID = 'TON_ID_SERVEUR_ICI'; // Remplace avec ton ID de serveur
+
+let botAvatar = '';
+let botReady = false;
+
+// États de service
 const enServiceTaxi = [];
 const enServiceBusC1 = [];
 const enServiceBusC2 = [];
 const enServiceBusC3 = [];
 
-const salonTaxiId = '1341802481960882276';
-const salonBusId = '1349639922574688266';
-const roleAutoriseId = '1336435782302433432'; // ⬅️ ID du rôle autorisé à utiliser /enlever
-
-let botAvatar = '';
-let botReady = false;
-
 // Serveur Express
-const app = express();
-const PORT = process.env.PORT || 3000;
-
 app.get('/', (req, res) => {
   res.send('Le serveur est en ligne');
 });
-
 app.listen(PORT, () => {
   console.log(`🚀 Serveur de statut lancé sur le port ${PORT}`);
 });
 
-// Commandes slash à enregistrer
-async function registerCommands() {
+// Enregistrement des commandes
+async function registerCommands(clientId) {
   const commands = [
     { name: 'debut-taxi', description: 'Commence le service de taxi' },
     { name: 'fin-taxi', description: 'Termine le service de taxi' },
@@ -53,26 +51,26 @@ async function registerCommands() {
     {
       name: 'enlever',
       description: 'Retire un utilisateur de toutes les listes de service',
-      options: [
-        {
-          name: 'utilisateur',
-          type: 6,
-          description: 'Utilisateur à retirer',
-          required: true,
-        },
-      ],
+      options: [{
+        name: 'utilisateur',
+        type: 6,
+        description: 'Utilisateur à retirer',
+        required: true,
+      }],
     },
   ];
 
   try {
-    await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
-    console.log('✅ Commandes enregistrées.');
+    await rest.put(Routes.applicationGuildCommands(clientId, GUILD_ID), {
+      body: commands,
+    });
+    console.log('✅ Commandes enregistrées (serveur de test).');
   } catch (error) {
-    console.error('❌ Erreur lors de l\'enregistrement des commandes:', error);
+    console.error('❌ Erreur d’enregistrement des commandes :', error);
   }
 }
 
-// Envoie ou met à jour un embed
+// Fonctions utilitaires
 async function sendOrUpdateLastEmbed(channel, embed) {
   const messages = await channel.messages.fetch({ limit: 1 });
   const lastMessage = messages.first();
@@ -84,112 +82,100 @@ async function sendOrUpdateLastEmbed(channel, embed) {
   }
 }
 
-// Mise à jour des taxis
 async function updateTaxiMessage() {
-  try {
-    const salon = await client.channels.fetch(salonTaxiId);
-    if (!salon) return console.log('❌ Salon des taxis introuvable.');
+  const salon = await client.channels.fetch(salonTaxiId);
+  if (!salon) return console.log('❌ Salon des taxis introuvable.');
 
-    const embed = new EmbedBuilder()
-      .setColor(0xeca830)
-      .setTitle('🚕 Taxis en service')
-      .setDescription(
-        enServiceTaxi.length
-          ? enServiceTaxi.map(name => `- ${name}`).join('\n')
-          : "Aucun taxi en service actuellement."
-      )
-      .setThumbnail(botAvatar);
+  const embed = new EmbedBuilder()
+    .setColor(0xeca830)
+    .setTitle('🚕 Taxis en service')
+    .setDescription(
+      enServiceTaxi.length
+        ? enServiceTaxi.map(name => `- ${name}`).join('\n')
+        : "Aucun taxi en service actuellement."
+    )
+    .setThumbnail(botAvatar);
 
-    await sendOrUpdateLastEmbed(salon, embed);
-  } catch (error) {
-    console.error('❌ Erreur updateTaxiMessage:', error);
-  }
+  await sendOrUpdateLastEmbed(salon, embed);
 }
 
-// Mise à jour des bus
 async function updateBusMessage() {
-  try {
-    const salon = await client.channels.fetch(salonBusId);
-    if (!salon) return console.log('❌ Salon des bus introuvable.');
+  const salon = await client.channels.fetch(salonBusId);
+  if (!salon) return console.log('❌ Salon des bus introuvable.');
 
-    const embed = new EmbedBuilder()
-      .setColor(0x508bab)
-      .setTitle('🚌 Bus en service')
-      .setDescription(
-        `**Ligne C1 :**\n${enServiceBusC1.length ? enServiceBusC1.map(name => `- ${name}`).join("\n") : "Aucun en service"}\n\n` +
-        `**Ligne C2 :**\n${enServiceBusC2.length ? enServiceBusC2.map(name => `- ${name}`).join("\n") : "Aucun en service"}\n\n` +
-        `**Ligne C3 :**\n${enServiceBusC3.length ? enServiceBusC3.map(name => `- ${name}`).join("\n") : "Aucun en service"}`
-      )
-      .setThumbnail(botAvatar);
+  const embed = new EmbedBuilder()
+    .setColor(0x508bab)
+    .setTitle('🚌 Bus en service')
+    .setDescription(
+      `**Ligne C1 :**\n${enServiceBusC1.length ? enServiceBusC1.map(name => `- ${name}`).join("\n") : "Aucun en service"}\n\n` +
+      `**Ligne C2 :**\n${enServiceBusC2.length ? enServiceBusC2.map(name => `- ${name}`).join("\n") : "Aucun en service"}\n\n` +
+      `**Ligne C3 :**\n${enServiceBusC3.length ? enServiceBusC3.map(name => `- ${name}`).join("\n") : "Aucun en service"}`
+    )
+    .setThumbnail(botAvatar);
 
-    await sendOrUpdateLastEmbed(salon, embed);
-  } catch (error) {
-    console.error('❌ Erreur updateBusMessage:', error);
-  }
+  await sendOrUpdateLastEmbed(salon, embed);
 }
 
-// Répond aux interactions
+// Gestion des interactions
 client.on('interactionCreate', async interaction => {
   if (!interaction.isCommand()) return;
 
-  if (!interaction.inGuild() ||
-    (interaction.channelId !== salonTaxiId && interaction.channelId !== salonBusId)) {
+  if (!interaction.inGuild() || ![salonTaxiId, salonBusId].includes(interaction.channelId)) {
     await interaction.reply({ content: '❌ Cette commande ne peut être utilisée que dans les salons dédiés.', ephemeral: true });
     return;
   }
 
-  const { commandName, user, member } = interaction;
+  const { commandName, member } = interaction;
   const displayName = member.displayName;
+  let message = '';
 
   try {
-    let message = '';
-
     switch (commandName) {
       case 'debut-taxi':
         if (!enServiceTaxi.includes(displayName)) enServiceTaxi.push(displayName);
-        message = `🚕 Tu as commencé ton service de taxi.`;
+        message = '🚕 Tu as commencé ton service de taxi.';
         await updateTaxiMessage();
         break;
 
       case 'fin-taxi':
         enServiceTaxi.splice(enServiceTaxi.indexOf(displayName), 1);
-        message = `🛑 Tu as terminé ton service de taxi.`;
+        message = '🛑 Tu as terminé ton service de taxi.';
         await updateTaxiMessage();
         break;
 
       case 'debut-c1':
         if (!enServiceBusC1.includes(displayName)) enServiceBusC1.push(displayName);
-        message = `🚌 Tu as commencé ton service sur la ligne C1.`;
+        message = '🚌 Tu as commencé ton service sur la ligne C1.';
         await updateBusMessage();
         break;
 
       case 'fin-c1':
         enServiceBusC1.splice(enServiceBusC1.indexOf(displayName), 1);
-        message = `🛑 Tu as terminé ton service sur la ligne C1.`;
+        message = '🛑 Tu as terminé ton service sur la ligne C1.';
         await updateBusMessage();
         break;
 
       case 'debut-c2':
         if (!enServiceBusC2.includes(displayName)) enServiceBusC2.push(displayName);
-        message = `🚌 Tu as commencé ton service sur la ligne C2.`;
+        message = '🚌 Tu as commencé ton service sur la ligne C2.';
         await updateBusMessage();
         break;
 
       case 'fin-c2':
         enServiceBusC2.splice(enServiceBusC2.indexOf(displayName), 1);
-        message = `🛑 Tu as terminé ton service sur la ligne C2.`;
+        message = '🛑 Tu as terminé ton service sur la ligne C2.';
         await updateBusMessage();
         break;
 
       case 'debut-c3':
         if (!enServiceBusC3.includes(displayName)) enServiceBusC3.push(displayName);
-        message = `🚌 Tu as commencé ton service sur la ligne C3.`;
+        message = '🚌 Tu as commencé ton service sur la ligne C3.';
         await updateBusMessage();
         break;
 
       case 'fin-c3':
         enServiceBusC3.splice(enServiceBusC3.indexOf(displayName), 1);
-        message = `🛑 Tu as terminé ton service sur la ligne C3.`;
+        message = '🛑 Tu as terminé ton service sur la ligne C3.';
         await updateBusMessage();
         break;
 
@@ -232,18 +218,17 @@ client.on('interactionCreate', async interaction => {
         } else {
           await interaction.reply({ content: `ℹ️ ${nomAffiche} n'était inscrit à aucun service.`, ephemeral: true });
         }
-        break;
+        return;
 
       default:
         message = '❓ Commande inconnue.';
     }
 
-    if (commandName !== 'enlever') {
-      const reply = await interaction.reply({ content: message, ephemeral: true, fetchReply: true });
-      setTimeout(() => {
-        interaction.deleteReply().catch(console.error);
-      }, 3000);
-    }
+    const reply = await interaction.reply({ content: message, ephemeral: true, fetchReply: true });
+    setTimeout(() => {
+      interaction.deleteReply().catch(console.error);
+    }, 3000);
+
   } catch (error) {
     console.error('❌ Erreur interactionCreate:', error);
     if (!interaction.replied) {
@@ -252,16 +237,14 @@ client.on('interactionCreate', async interaction => {
   }
 });
 
-// Quand le bot est prêt
+// Démarrage du bot
 client.once('ready', async () => {
   console.log(`✅ Bot connecté en tant que ${client.user.tag}`);
   botAvatar = client.user.displayAvatarURL();
-  await client.application.fetch();
-  await registerCommands();
+  await registerCommands(client.user.id);
   await updateTaxiMessage();
   await updateBusMessage();
   botReady = true;
 });
 
-// Connexion
 client.login(process.env.TOKEN);
