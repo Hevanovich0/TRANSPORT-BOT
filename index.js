@@ -22,7 +22,7 @@ const enServiceBusC3 = [];
 
 const salonTaxiId = '1341802481960882276';
 const salonBusId = '1349639922574688266';
-const roleAutoriseId = 'ROLE_ID_AUTORISE'; // ⬅️ ID du rôle autorisé à utiliser /enlever
+const roleAutoriseId = '1336435782302433432'; // ⬅️ ID du rôle autorisé à utiliser /enlever
 
 let botAvatar = '';
 let botReady = false;
