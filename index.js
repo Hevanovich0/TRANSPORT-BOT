@@ -17,8 +17,8 @@ const PORT = process.env.PORT || 3000;
 
 const salonTaxiId = '1341802481960882276';
 const salonBusId = '1349639922574688266';
-const roleAutoriseId = '1336435782302433432'; // Remplacer par l'ID du rôle autorisé
-const GUILD_ID = '1336424856958271598'; // Remplacer par l'ID du serveur
+const roleAutoriseId = '1336435782302433432';
+const GUILD_ID = '1336424856958271598'; // Remplace avec ton ID de serveur
 
 let botAvatar = '';
 let botReady = false;
@@ -61,6 +61,10 @@ async function registerCommands(clientId) {
   ];
 
   try {
+    // Supprimer d'abord les commandes existantes
+    await rest.put(Routes.applicationGuildCommands(clientId, GUILD_ID), { body: [] });
+
+    // Puis enregistrer les nouvelles commandes
     await rest.put(Routes.applicationGuildCommands(clientId, GUILD_ID), {
       body: commands,
     });
@@ -180,7 +184,6 @@ client.on('interactionCreate', async interaction => {
         break;
 
       case 'enlever':
-        // Vérification du rôle spécifique pour utiliser cette commande
         if (!member.roles.cache.has(roleAutoriseId)) {
           await interaction.reply({ content: '❌ Tu n’as pas la permission d’utiliser cette commande.', ephemeral: true });
           return;
@@ -215,19 +218,11 @@ client.on('interactionCreate', async interaction => {
 
         if (modif) {
           await updateBusMessage();
-          const reply = await interaction.reply({ content: `✅ ${nomAffiche} a été retiré des services.`, ephemeral: true });
-
-          // Faire disparaître le message après quelques secondes (3 secondes)
-          setTimeout(() => {
-            reply.delete().catch(console.error);
-          }, 3000);
+          await interaction.reply({ content: `✅ ${nomAffiche} a été retiré des services.`, ephemeral: true });
+          setTimeout(() => interaction.deleteReply(), 5000); // Supprime le message après 5 secondes
         } else {
-          const reply = await interaction.reply({ content: `ℹ️ ${nomAffiche} n'était inscrit à aucun service.`, ephemeral: true });
-
-          // Faire disparaître le message après quelques secondes (3 secondes)
-          setTimeout(() => {
-            reply.delete().catch(console.error);
-          }, 3000);
+          await interaction.reply({ content: `ℹ️ ${nomAffiche} n'était inscrit à aucun service.`, ephemeral: true });
+          setTimeout(() => interaction.deleteReply(), 5000); // Supprime le message après 5 secondes
         }
         return;
 
