@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 3000;
 
 const salonTaxiId = '1341802481960882276';
 const salonBusId = '1349639922574688266';
-const roleAutoriseId = '1336435782302433432'; // Rôle autorisé pour utiliser /enlever
+const roleAutoriseId = '1336435782302433432';  // ID du rôle autorisé pour la commande
 const GUILD_ID = '1336424856958271598'; // Remplace avec ton ID de serveur
 
 let botAvatar = '';
@@ -53,7 +53,7 @@ async function registerCommands(clientId) {
       description: 'Retire un utilisateur de toutes les listes de service',
       options: [{
         name: 'utilisateur',
-        type: 6,  // Type 6 signifie un utilisateur
+        type: 6,
         description: 'Utilisateur à retirer',
         required: true,
       }],
@@ -184,8 +184,12 @@ client.on('interactionCreate', async interaction => {
         break;
 
       case 'enlever':
-        // Vérifier si l'utilisateur a le rôle autorisé
+        // Vérification des rôles de l'utilisateur
+        console.log("Rôle autorisé pour cette commande :", roleAutoriseId);
+        
+        // Vérification de la présence du rôle
         if (!member.roles.cache.has(roleAutoriseId)) {
+          console.log("Rôles de l'utilisateur :", member.roles.cache.map(role => role.id)); // Affiche les rôles de l'utilisateur
           await interaction.reply({ content: '❌ Tu n’as pas la permission d’utiliser cette commande.', ephemeral: true });
           return;
         }
@@ -196,6 +200,7 @@ client.on('interactionCreate', async interaction => {
 
         let modif = false;
 
+        // Retirer l'utilisateur des services
         if (enServiceTaxi.includes(nomAffiche)) {
           enServiceTaxi.splice(enServiceTaxi.indexOf(nomAffiche), 1);
           await updateTaxiMessage();
