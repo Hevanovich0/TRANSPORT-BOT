@@ -61,14 +61,14 @@ async function registerCommands(clientId) {
   ];
 
   try {
-    // Supprimer d'abord les commandes existantes
+    // Supprimer d'abord les anciennes commandes du serveur
     await rest.put(Routes.applicationGuildCommands(clientId, GUILD_ID), { body: [] });
 
-    // Puis enregistrer les nouvelles commandes
+    // Enregistrer les nouvelles commandes uniquement pour ce serveur
     await rest.put(Routes.applicationGuildCommands(clientId, GUILD_ID), {
       body: commands,
     });
-    console.log('✅ Commandes enregistrées (serveur de test).');
+    console.log('✅ Commandes enregistrées (serveur spécifique).');
   } catch (error) {
     console.error('❌ Erreur d’enregistrement des commandes :', error);
   }
@@ -219,10 +219,14 @@ client.on('interactionCreate', async interaction => {
         if (modif) {
           await updateBusMessage();
           await interaction.reply({ content: `✅ ${nomAffiche} a été retiré des services.`, ephemeral: true });
-          setTimeout(() => interaction.deleteReply(), 5000); // Supprime le message après 5 secondes
+          setTimeout(() => {
+            interaction.deleteReply().catch(console.error);
+          }, 3000);
         } else {
           await interaction.reply({ content: `ℹ️ ${nomAffiche} n'était inscrit à aucun service.`, ephemeral: true });
-          setTimeout(() => interaction.deleteReply(), 5000); // Supprime le message après 5 secondes
+          setTimeout(() => {
+            interaction.deleteReply().catch(console.error);
+          }, 3000);
         }
         return;
 
@@ -247,7 +251,7 @@ client.on('interactionCreate', async interaction => {
 client.once('ready', async () => {
   console.log(`✅ Bot connecté en tant que ${client.user.tag}`);
   botAvatar = client.user.displayAvatarURL();
-  await registerCommands(client.user.id);
+  await registerCommands(client.user.id); // Enregistrement des commandes à l'entrée du bot
   await updateTaxiMessage();
   await updateBusMessage();
   botReady = true;
