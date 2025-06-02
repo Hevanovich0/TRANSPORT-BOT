@@ -2,7 +2,11 @@ const { Client, GatewayIntentBits, REST, Routes, EmbedBuilder } = require('disco
 const express = require('express');
 require('dotenv').config();
 
-// Configuration
+// Configuration des rôles
+const rolePDGAdjointId = '1336435782302433432';
+const rolePDGId = '1336435700270235702';
+const roleProprietaireId = '1340023719342641283';
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -17,7 +21,6 @@ const PORT = process.env.PORT || 3000;
 
 const salonTaxiId = '1341802481960882276';
 const salonBusId = '1349639922574688266';
-const roleAutoriseId = '1336435782302433432';  // ID du rôle autorisé pour la commande
 const GUILD_ID = '1336424856958271598'; // Remplace avec ton ID de serveur
 
 let botAvatar = '';
@@ -185,11 +188,11 @@ client.on('interactionCreate', async interaction => {
 
       case 'enlever':
         // Vérification des rôles de l'utilisateur
-        console.log("Rôle autorisé pour cette commande :", roleAutoriseId);
-        
-        // Vérification de la présence du rôle
-        if (!member.roles.cache.has(roleAutoriseId)) {
-          console.log("Rôles de l'utilisateur :", member.roles.cache.map(role => role.id)); // Affiche les rôles de l'utilisateur
+        if (
+          !member.roles.cache.has(rolePDGAdjointId) &&
+          !member.roles.cache.has(rolePDGId) &&
+          !member.roles.cache.has(roleProprietaireId)
+        ) {
           await interaction.reply({ content: '❌ Tu n’as pas la permission d’utiliser cette commande.', ephemeral: true });
           return;
         }
